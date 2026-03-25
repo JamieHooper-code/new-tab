@@ -279,24 +279,24 @@ function initDrag(el) {
   });
   el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
 
-  // ── Touch drag ──
-  const grip = el.querySelector('.grip');
+  // ── Touch drag (whole title bar) ──
+  const titleBar = el.querySelector('.panel-title');
   let touching = false;
 
-  grip.addEventListener('touchstart', e => {
+  titleBar.addEventListener('touchstart', e => {
     touching = true;
     el.classList.add('dragging');
     e.preventDefault();
   }, { passive: false });
 
-  grip.addEventListener('touchmove', e => {
+  titleBar.addEventListener('touchmove', e => {
     if (!touching) return;
     e.preventDefault();
     const t = e.touches[0];
     reorderPanel(el, t.clientX, t.clientY);
   }, { passive: false });
 
-  grip.addEventListener('touchend', () => {
+  titleBar.addEventListener('touchend', () => {
     touching = false;
     el.classList.remove('dragging');
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
