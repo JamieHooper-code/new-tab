@@ -16,10 +16,8 @@
     }
 
     #board {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-      gap: 20px;
-      align-items: start;
+      columns: 290px;
+      column-gap: 20px;
     }
 
     .panel {
@@ -32,6 +30,8 @@
       gap: 11px;
       box-shadow: 0 2px 12px rgba(0,0,0,0.4);
       transition: box-shadow 0.2s;
+      break-inside: avoid;
+      margin-bottom: 20px;
     }
 
     .panel:hover {
