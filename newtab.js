@@ -27,7 +27,13 @@ const PANELS = [
     id: "house",
     title: "House To-Do",
     type: "checklist",
-    items: []
+    items: [
+      "Stabilise washing machine",
+      "Plant fruit trees",
+      "Clean room",
+      "Fix car windshield",
+      "Set up binder"
+    ]
   },
   {
     id: "rotation",
