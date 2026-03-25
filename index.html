@@ -237,6 +237,81 @@
     .tag-weekly  { background: #1a2030; color: #7aa2f7; }
     .tag-anytime { background: #2a2218; color: #e0af68; }
 
+    /* ── Panel title layout ── */
+    .panel-label { flex: 1; }
+
+    /* ── Static panel edit mode ── */
+    .edit-toggle-btn {
+      background: none;
+      border: 1px solid #2a2a38;
+      border-radius: 5px;
+      color: #555566;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 2px 8px;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .edit-toggle-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .edit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .edit-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .edit-text-input {
+      flex: 1;
+      background: #1e1e28;
+      border: 1px solid #2a2a38;
+      border-radius: 6px;
+      color: #c9c9d4;
+      padding: 5px 8px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .edit-text-input:focus { border-color: var(--accent); }
+
+    .tag-select {
+      background: #1e1e28;
+      border: 1px solid #2a2a38;
+      border-radius: 5px;
+      color: #888896;
+      font-size: 11px;
+      padding: 4px 6px;
+      outline: none;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .static-del {
+      visibility: visible;
+      color: #333340;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      flex-shrink: 0;
+      transition: color 0.15s;
+    }
+
+    .static-del:hover { color: #c06070; }
+
     /* ── Drag and drop ── */
     .panel-title {
       cursor: grab;

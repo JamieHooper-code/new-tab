@@ -101,26 +101,156 @@ function renderChecklist(panel, containerEl) {
   containerEl.appendChild(clearBtn);
 }
 
-function renderStatic(panel, containerEl) {
-  const hasTags = panel.items.some(i => typeof i === 'object' && i.tag);
-  const list = document.createElement('ul');
-  list.className = 'static-list' + (hasTags ? ' has-tags' : '');
+// ── Static panels ──
 
-  for (const item of panel.items) {
-    const li = document.createElement('li');
-    const text = typeof item === 'string' ? item : item.text;
-    const tag  = typeof item === 'object' ? item.tag : null;
-    li.appendChild(document.createTextNode(text));
-    if (tag) {
-      const tagEl = document.createElement('span');
-      tagEl.className = 'tag tag-' + tag;
-      tagEl.textContent = tag;
-      li.appendChild(tagEl);
-    }
-    list.appendChild(li);
-  }
-  containerEl.appendChild(list);
+function loadStaticItems(panel) {
+  try {
+    const saved = localStorage.getItem('static_' + panel.id);
+    if (saved) return JSON.parse(saved);
+  } catch {}
+  return panel.items.map(i => typeof i === 'string' ? { text: i, tag: null } : { text: i.text, tag: i.tag || null });
 }
+
+function saveStaticItems(id, items) {
+  localStorage.setItem('static_' + id, JSON.stringify(items));
+}
+
+function renderStatic(panel, containerEl) {
+  if (!localStorage.getItem('static_' + panel.id)) {
+    saveStaticItems(panel.id, loadStaticItems(panel));
+  }
+
+  let editMode = false;
+  const wrapper = document.createElement('div');
+
+  function rebuild() {
+    wrapper.innerHTML = '';
+    const items = loadStaticItems(panel);
+    const hasTags = items.some(i => i.tag);
+
+    if (!editMode) {
+      const list = document.createElement('ul');
+      list.className = 'static-list' + (hasTags ? ' has-tags' : '');
+      for (const item of items) {
+        const li = document.createElement('li');
+        li.appendChild(document.createTextNode(item.text));
+        if (item.tag) {
+          const tagEl = document.createElement('span');
+          tagEl.className = 'tag tag-' + item.tag;
+          tagEl.textContent = item.tag;
+          li.appendChild(tagEl);
+        }
+        list.appendChild(li);
+      }
+      wrapper.appendChild(list);
+    } else {
+      const editList = document.createElement('div');
+      editList.className = 'edit-list';
+
+      items.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'edit-row';
+
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.value = item.text;
+        textInput.className = 'edit-text-input';
+        textInput.addEventListener('blur', () => {
+          const val = textInput.value.trim();
+          if (val) { items[idx].text = val; saveStaticItems(panel.id, items); }
+        });
+        textInput.addEventListener('keydown', e => {
+          if (e.key === 'Enter') textInput.blur();
+        });
+
+        const del = document.createElement('button');
+        del.className = 'del-btn static-del';
+        del.textContent = '×';
+        del.addEventListener('click', () => {
+          items.splice(idx, 1);
+          saveStaticItems(panel.id, items);
+          rebuild();
+        });
+
+        row.append(textInput);
+
+        if (hasTags) {
+          const tagSel = document.createElement('select');
+          tagSel.className = 'tag-select';
+          [['daily','daily'], ['weekly','weekly'], ['anytime','anytime'], ['—','']].forEach(([label, val]) => {
+            const opt = document.createElement('option');
+            opt.value = val;
+            opt.textContent = label;
+            if ((item.tag || '') === val) opt.selected = true;
+            tagSel.appendChild(opt);
+          });
+          tagSel.addEventListener('change', () => {
+            items[idx].tag = tagSel.value || null;
+            saveStaticItems(panel.id, items);
+          });
+          row.appendChild(tagSel);
+        }
+
+        row.appendChild(del);
+        editList.appendChild(row);
+      });
+
+      // Add row
+      const addRow = document.createElement('div');
+      addRow.className = 'add-row';
+      const newInput = document.createElement('input');
+      newInput.type = 'text';
+      newInput.placeholder = 'Add item…';
+
+      let tagSel = null;
+      if (hasTags) {
+        tagSel = document.createElement('select');
+        tagSel.className = 'tag-select';
+        ['daily', 'weekly', 'anytime'].forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t;
+          opt.textContent = t;
+          tagSel.appendChild(opt);
+        });
+        addRow.appendChild(newInput);
+        addRow.appendChild(tagSel);
+      } else {
+        addRow.appendChild(newInput);
+      }
+
+      const addBtn = document.createElement('button');
+      addBtn.textContent = 'Add';
+      addRow.appendChild(addBtn);
+
+      function addItem() {
+        const text = newInput.value.trim();
+        if (!text) return;
+        items.push({ text, tag: tagSel ? tagSel.value : null });
+        saveStaticItems(panel.id, items);
+        newInput.value = '';
+        rebuild();
+      }
+
+      addBtn.addEventListener('click', addItem);
+      newInput.addEventListener('keydown', e => { if (e.key === 'Enter') addItem(); });
+
+      wrapper.append(editList, addRow);
+    }
+  }
+
+  rebuild();
+  containerEl.appendChild(wrapper);
+
+  return {
+    toggleEdit() {
+      editMode = !editMode;
+      rebuild();
+      return editMode;
+    }
+  };
+}
+
+// ── Panel builder ──
 
 function loadOrder() {
   try { return JSON.parse(localStorage.getItem('panel_order')) || null; }
@@ -155,16 +285,31 @@ function buildPanel(panel) {
   grip.title = 'Drag to reorder';
 
   const label = document.createElement('span');
+  label.className = 'panel-label';
   label.textContent = panel.title;
 
   title.append(grip, label);
   el.appendChild(title);
 
-  if (panel.type === 'checklist') renderChecklist(panel, el);
-  else renderStatic(panel, el);
+  if (panel.type === 'checklist') {
+    renderChecklist(panel, el);
+  } else {
+    const { toggleEdit } = renderStatic(panel, el);
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-toggle-btn';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const nowEditing = toggleEdit();
+      editBtn.textContent = nowEditing ? 'Done' : 'Edit';
+    });
+    title.appendChild(editBtn);
+  }
 
   return el;
 }
+
+// ── Drag ──
 
 const board = document.getElementById('board');
 
@@ -179,13 +324,11 @@ function initDrag(el) {
     offsetX = clientX - rect.left;
     offsetY = clientY - rect.top;
 
-    // Placeholder keeps the slot open
     placeholder = document.createElement('div');
     placeholder.className = 'drag-placeholder';
     placeholder.style.height = rect.height + 'px';
     el.after(placeholder);
 
-    // Ghost floats under finger
     ghost = el.cloneNode(true);
     ghost.classList.add('panel-ghost');
     ghost.style.width = rect.width + 'px';
@@ -227,8 +370,8 @@ function initDrag(el) {
 
   const titleBar = el.querySelector('.panel-title');
 
-  // Touch
   titleBar.addEventListener('touchstart', e => {
+    if (e.target.closest('.edit-toggle-btn')) return;
     e.preventDefault();
     const t = e.touches[0];
     onStart(t.clientX, t.clientY);
@@ -243,8 +386,8 @@ function initDrag(el) {
   titleBar.addEventListener('touchend', onEnd);
   titleBar.addEventListener('touchcancel', onEnd);
 
-  // Mouse
   titleBar.addEventListener('mousedown', e => {
+    if (e.target.closest('.edit-toggle-btn')) return;
     e.preventDefault();
     onStart(e.clientX, e.clientY);
     const onMouseMove = e => onMove(e.clientX, e.clientY);
