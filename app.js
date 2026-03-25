@@ -98,6 +98,31 @@ function attachItemDrag(li, listEl, idx, getItems, saveItems, rebuild) {
   });
 }
 
+// ── Display mode helpers ──────────────────────────────────────
+
+function loadPanelCfg(id) {
+  try { return { mode: 'all', limit: 5, ...JSON.parse(localStorage.getItem('panel_cfg_' + id)) }; }
+  catch { return { mode: 'all', limit: 5 }; }
+}
+
+function savePanelCfg(id, cfg) {
+  localStorage.setItem('panel_cfg_' + id, JSON.stringify(cfg));
+}
+
+const _randomCache = new Map();
+
+function getDisplayItems(id, items, cfg) {
+  if (cfg.mode === 'first') return items.slice(0, cfg.limit);
+  if (cfg.mode === 'random') {
+    if (!_randomCache.has(id) || _randomCache.get(id).src !== items.length) {
+      const shuffled = [...items].sort(() => Math.random() - 0.5);
+      _randomCache.set(id, { src: items.length, shuffled });
+    }
+    return _randomCache.get(id).shuffled.slice(0, cfg.limit);
+  }
+  return items; // 'all' and 'scroll' show everything
+}
+
 // ── Checklist panels ─────────────────────────────────────────
 
 function loadChecklist(id) {
@@ -126,7 +151,16 @@ function renderChecklist(panel, containerEl) {
 
   function rebuild() {
     list.innerHTML = '';
-    const current = loadChecklist(panel.id);
+    list.style.maxHeight = '';
+    list.style.overflowY = '';
+    const all = loadChecklist(panel.id);
+    const cfg = loadPanelCfg(panel.id);
+    if (cfg.mode === 'scroll') {
+      list.style.maxHeight = '220px';
+      list.style.overflowY = 'auto';
+    }
+    const current = getDisplayItems(panel.id, all, cfg);
+    const showDrag = cfg.mode !== 'random';
     current.forEach((item, idx) => {
       const li = document.createElement('li');
       li.dataset.idx = idx;
@@ -135,13 +169,16 @@ function renderChecklist(panel, containerEl) {
       const grip = document.createElement('span');
       grip.className = 'item-grip';
       grip.textContent = '⠿';
+      if (!showDrag) grip.style.visibility = 'hidden';
 
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.checked = item.done;
       cb.addEventListener('change', () => {
-        current[idx].done = cb.checked;
-        const reordered = [...current.filter(i => !i.done), ...current.filter(i => i.done)];
+        const full = loadChecklist(panel.id);
+        const realIdx = full.findIndex(i => i.text === item.text);
+        if (realIdx !== -1) full[realIdx].done = cb.checked;
+        const reordered = [...full.filter(i => !i.done), ...full.filter(i => i.done)];
         saveChecklist(panel.id, reordered);
         rebuild();
       });
@@ -155,15 +192,17 @@ function renderChecklist(panel, containerEl) {
       del.textContent = '×';
       del.title = 'Remove';
       del.addEventListener('click', () => {
-        current.splice(idx, 1);
-        saveChecklist(panel.id, current);
+        const full = loadChecklist(panel.id);
+        const realIdx = full.findIndex(i => i.text === item.text);
+        if (realIdx !== -1) full.splice(realIdx, 1);
+        saveChecklist(panel.id, full);
         rebuild();
       });
 
       li.append(grip, cb, span, del);
       list.appendChild(li);
 
-      attachItemDrag(li, list, idx,
+      if (showDrag) attachItemDrag(li, list, idx,
         () => loadChecklist(panel.id),
         items => saveChecklist(panel.id, items),
         rebuild
@@ -207,6 +246,7 @@ function renderChecklist(panel, containerEl) {
     rebuild();
   });
   containerEl.appendChild(clearBtn);
+  return { rebuild };
 }
 
 // ── Static panels ─────────────────────────────────────────────
@@ -237,16 +277,25 @@ function renderStatic(panel, containerEl) {
     const hasTags = items.some(i => i.tag);
 
     if (!editMode) {
+      const cfg = loadPanelCfg(panel.id);
+      const displayItems = getDisplayItems(panel.id, items, cfg);
+      const showDrag = cfg.mode !== 'random';
+
       const list = document.createElement('ul');
       list.className = 'static-list' + (hasTags ? ' has-tags' : '');
+      if (cfg.mode === 'scroll') {
+        list.style.maxHeight = '220px';
+        list.style.overflowY = 'auto';
+      }
 
-      items.forEach((item, idx) => {
+      displayItems.forEach((item, idx) => {
         const li = document.createElement('li');
         li.dataset.idx = idx;
 
         const grip = document.createElement('span');
         grip.className = 'item-grip';
         grip.textContent = '⠿';
+        if (!showDrag) grip.style.visibility = 'hidden';
 
         const textNode = document.createElement('span');
         textNode.className = 'static-text';
@@ -262,7 +311,7 @@ function renderStatic(panel, containerEl) {
         }
         list.appendChild(li);
 
-        attachItemDrag(li, list, idx,
+        if (showDrag) attachItemDrag(li, list, idx,
           () => loadStaticItems(panel),
           items => saveStaticItems(panel.id, items),
           rebuild
@@ -387,6 +436,7 @@ function renderStatic(panel, containerEl) {
   containerEl.appendChild(wrapper);
 
   return {
+    rebuild,
     toggleEdit() {
       editMode = !editMode;
       rebuild();
@@ -430,6 +480,77 @@ function orderedPanels() {
   ];
 }
 
+function buildSettingsBar(panelId, onchange) {
+  const bar = document.createElement('div');
+  bar.className = 'settings-bar';
+
+  const cfg = loadPanelCfg(panelId);
+
+  // Mode buttons
+  const modeRow = document.createElement('div');
+  modeRow.className = 'settings-modes';
+
+  const modes = [['all','All'], ['first','First'], ['random','Random'], ['scroll','Scroll']];
+  modes.forEach(([val, label]) => {
+    const btn = document.createElement('button');
+    btn.className = 'mode-btn' + (cfg.mode === val ? ' active' : '');
+    btn.textContent = label;
+    btn.dataset.mode = val;
+    btn.addEventListener('click', () => {
+      const c = loadPanelCfg(panelId);
+      c.mode = val;
+      savePanelCfg(panelId, c);
+      bar.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === val));
+      limitRow.style.display = (val === 'first' || val === 'random') ? 'flex' : 'none';
+      _randomCache.delete(panelId);
+      onchange();
+    });
+    modeRow.appendChild(btn);
+  });
+
+  // Limit stepper
+  const limitRow = document.createElement('div');
+  limitRow.className = 'settings-limit';
+  limitRow.style.display = (cfg.mode === 'first' || cfg.mode === 'random') ? 'flex' : 'none';
+
+  const dec = document.createElement('button');
+  dec.className = 'stepper-btn';
+  dec.textContent = '−';
+
+  const val = document.createElement('span');
+  val.className = 'stepper-val';
+  val.textContent = cfg.limit;
+
+  const inc = document.createElement('button');
+  inc.className = 'stepper-btn';
+  inc.textContent = '+';
+
+  const lbl = document.createElement('span');
+  lbl.className = 'stepper-lbl';
+  lbl.textContent = 'items';
+
+  dec.addEventListener('click', () => {
+    const c = loadPanelCfg(panelId);
+    c.limit = Math.max(1, c.limit - 1);
+    savePanelCfg(panelId, c);
+    val.textContent = c.limit;
+    _randomCache.delete(panelId);
+    onchange();
+  });
+  inc.addEventListener('click', () => {
+    const c = loadPanelCfg(panelId);
+    c.limit = c.limit + 1;
+    savePanelCfg(panelId, c);
+    val.textContent = c.limit;
+    _randomCache.delete(panelId);
+    onchange();
+  });
+
+  limitRow.append(dec, val, inc, lbl);
+  bar.append(modeRow, limitRow);
+  return bar;
+}
+
 function buildPanel(panel) {
   const el = document.createElement('div');
   el.className = 'panel';
@@ -447,13 +568,21 @@ function buildPanel(panel) {
   label.className = 'panel-label';
   label.textContent = panel.title;
 
+  // ⚙ settings toggle button
+  const cfgBtn = document.createElement('button');
+  cfgBtn.className = 'edit-toggle-btn cfg-btn';
+  cfgBtn.textContent = '⚙';
+  cfgBtn.title = 'Display settings';
+
   title.append(grip, label);
-  el.appendChild(title);
+
+  let panelRebuild;
 
   if (panel.type === 'checklist') {
-    renderChecklist(panel, el);
+    ({ rebuild: panelRebuild } = renderChecklist(panel, el));
   } else {
-    const { toggleEdit } = renderStatic(panel, el);
+    const { toggleEdit, rebuild } = renderStatic(panel, el);
+    panelRebuild = rebuild;
     const editBtn = document.createElement('button');
     editBtn.className = 'edit-toggle-btn';
     editBtn.textContent = 'Edit';
@@ -481,6 +610,20 @@ function buildPanel(panel) {
     });
     title.appendChild(delBtn);
   }
+
+  title.appendChild(cfgBtn);
+  el.appendChild(title);
+
+  const settingsBar = buildSettingsBar(panel.id, panelRebuild);
+  settingsBar.style.display = 'none';
+  el.appendChild(settingsBar);
+
+  cfgBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = settingsBar.style.display === 'none';
+    settingsBar.style.display = open ? 'flex' : 'none';
+    cfgBtn.classList.toggle('active', open);
+  });
 
   return el;
 }
@@ -669,7 +812,7 @@ function initDrag(el) {
   const titleBar = el.querySelector('.panel-title');
 
   titleBar.addEventListener('touchstart', e => {
-    if (e.target.closest('.edit-toggle-btn')) return;
+    if (e.target.closest('.edit-toggle-btn, .cfg-btn')) return;
     e.preventDefault();
     const t = e.touches[0];
     onStart(t.clientX, t.clientY);
@@ -685,7 +828,7 @@ function initDrag(el) {
   titleBar.addEventListener('touchcancel', onEnd);
 
   titleBar.addEventListener('mousedown', e => {
-    if (e.target.closest('.edit-toggle-btn')) return;
+    if (e.target.closest('.edit-toggle-btn, .cfg-btn')) return;
     e.preventDefault();
     onStart(e.clientX, e.clientY);
     const onMouseMove = e => onMove(e.clientX, e.clientY);

@@ -245,6 +245,84 @@
     /* ── Panel title layout ── */
     .panel-label { flex: 1; }
 
+    /* ── Settings bar ── */
+    .cfg-btn { font-size: 12px; }
+    .cfg-btn.active { color: var(--accent); border-color: var(--accent); }
+
+    .settings-bar {
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #12121a;
+      border-radius: 8px;
+      border: 1px solid #1e1e2a;
+    }
+
+    .settings-modes {
+      display: flex;
+      gap: 4px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      background: #1e1e28;
+      border: 1px solid #2a2a38;
+      border-radius: 6px;
+      color: #555566;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 5px 4px;
+      transition: all 0.15s;
+    }
+
+    .mode-btn:hover { color: #888896; border-color: #3a3a4a; }
+
+    .mode-btn.active {
+      background: #22223a;
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .settings-limit {
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stepper-btn {
+      background: #1e1e28;
+      border: 1px solid #2a2a38;
+      border-radius: 5px;
+      color: #888896;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 2px 8px;
+      transition: all 0.15s;
+    }
+
+    .stepper-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    .stepper-val {
+      min-width: 24px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: #c9c9d4;
+    }
+
+    .stepper-lbl {
+      font-size: 11px;
+      color: #444455;
+    }
+
+    /* Scrollable list */
+    .checklist, .static-list {
+      scrollbar-width: thin;
+      scrollbar-color: #2a2a38 transparent;
+    }
+
     /* ── Add panel card ── */
     .add-panel-card {
       border: 2px dashed #2a2a38;
