@@ -20,7 +20,7 @@ const PANELS = [
       "Add icon library Stream Deck voice commands",
       "Modify stream decks more programmatically",
       "Fix AHK++ VSCode extension not loading on boot",
-      "Build custom Chrome new tab page"
+      "Improve new tab page"
     ]
   },
   {
@@ -61,7 +61,13 @@ const PANELS = [
       "Close unneeded browser tabs before starting work",
       "Write down anything floating in your head",
       "Timebox: 25 min focused work, 5 min break",
-      "If overwhelmed, pick just ONE thing to do next"
+      "If overwhelmed, pick just ONE thing to do next",
+      "If your arms/hands are hurting: stop. Not in 10 minutes. Now.",
+      "The task will still be there tomorrow — your body might not recover as easily",
+      "Pain is not a sign to push through, it's a sign to stop",
+      "Stand up and walk away before you feel like you need to",
+      "Set a timer — when it goes off, get up regardless of where you are in the task",
+      "Locking in feels productive but chronic pain costs you far more time than breaks do"
     ]
   }
 ];
