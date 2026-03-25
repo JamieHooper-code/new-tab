@@ -202,6 +202,7 @@ const board = document.getElementById('board');
 for (const panel of PANELS) {
   const el = document.createElement('div');
   el.className = 'panel';
+  el.dataset.id = panel.id;
 
   const title = document.createElement('div');
   title.className = 'panel-title';
