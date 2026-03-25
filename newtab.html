@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #111;
+      color: #ddd;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: #1e1e1e;
+      border: 1px solid #2e2e2e;
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #888;
+      border-bottom: 1px solid #2a2a2a;
+      padding-bottom: 8px;
+      margin-bottom: 2px;
+    }
+
+    /* ── Checklist panels ── */
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.4;
+    }
+
+    .checklist li input[type="checkbox"] {
+      margin-top: 2px;
+      accent-color: #5a8aff;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .checklist li span {
+      cursor: pointer;
+      flex: 1;
+    }
+
+    .checklist li.done span {
+      text-decoration: line-through;
+      color: #555;
+    }
+
+    .checklist li .del-btn {
+      background: none;
+      border: none;
+      color: #444;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+      padding: 0 2px;
+      flex-shrink: 0;
+      visibility: hidden;
+    }
+
+    .checklist li:hover .del-btn { visibility: visible; }
+    .checklist li .del-btn:hover { color: #c66; }
+
+    .add-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .add-row input[type="text"] {
+      flex: 1;
+      background: #2a2a2a;
+      border: 1px solid #333;
+      border-radius: 5px;
+      color: #ccc;
+      padding: 5px 8px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .add-row input[type="text"]:focus { border-color: #5a8aff; }
+
+    .add-row button, .clear-btn {
+      background: #2a2a2a;
+      border: 1px solid #333;
+      border-radius: 5px;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 5px 9px;
+      white-space: nowrap;
+    }
+
+    .add-row button:hover, .clear-btn:hover {
+      background: #333;
+      color: #fff;
+    }
+
+    .clear-btn {
+      align-self: flex-start;
+      font-size: 11px;
+      color: #555;
+      border-color: #2a2a2a;
+    }
+
+    /* ── Static panels ── */
+    .static-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .static-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.4;
+      color: #bbb;
+    }
+
+    .static-list li::before {
+      content: '›';
+      color: #555;
+      flex-shrink: 0;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    .static-list.has-tags li {
+      justify-content: space-between;
+    }
+
+    .tag {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+      margin-left: 8px;
+      align-self: center;
+    }
+
+    .tag-daily   { background: #1d3a2a; color: #5dba7e; }
+    .tag-weekly  { background: #1d2e3a; color: #5d9aba; }
+    .tag-anytime { background: #2e2a1d; color: #baa05d; }
+  </style>
+</head>
+<body>
+<div id="board"></div>
+<script src="newtab.js"></script>
+</body>
+</html>
