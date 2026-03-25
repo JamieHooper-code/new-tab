@@ -257,13 +257,23 @@
     .panel-title:hover .grip { color: var(--accent); opacity: 0.5; }
 
     .panel.dragging {
-      opacity: 0.4;
-      cursor: grabbing;
+      opacity: 0;
     }
 
-    .panel.drag-over {
-      outline: 2px dashed var(--accent);
-      outline-offset: 2px;
+    .panel-ghost {
+      position: fixed;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0.85;
+      transform: scale(1.03) rotate(0.5deg);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+    }
+
+    .drag-placeholder {
+      border: 2px dashed #2e2e3e;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-sizing: border-box;
     }
   </style>
 </head>

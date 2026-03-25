@@ -23,7 +23,6 @@ function mergeInitialItems(id, configItems) {
 
 function renderChecklist(panel, containerEl) {
   const items = mergeInitialItems(panel.id, panel.items);
-
   const list = document.createElement('ul');
   list.className = 'checklist';
 
@@ -111,9 +110,7 @@ function renderStatic(panel, containerEl) {
     const li = document.createElement('li');
     const text = typeof item === 'string' ? item : item.text;
     const tag  = typeof item === 'object' ? item.tag : null;
-
     li.appendChild(document.createTextNode(text));
-
     if (tag) {
       const tagEl = document.createElement('span');
       tagEl.className = 'tag tag-' + tag;
@@ -148,7 +145,6 @@ function buildPanel(panel) {
   const el = document.createElement('div');
   el.className = 'panel';
   el.dataset.id = panel.id;
-  el.draggable = true;
 
   const title = document.createElement('div');
   title.className = 'panel-title';
@@ -171,62 +167,94 @@ function buildPanel(panel) {
 }
 
 const board = document.getElementById('board');
-let dragSrc = null;
-
-function reorderPanel(el, clientX, clientY) {
-  el.style.pointerEvents = 'none';
-  const under = document.elementFromPoint(clientX, clientY);
-  el.style.pointerEvents = '';
-  const target = under && under.closest('.panel');
-  if (!target || target === el) return;
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
-  target.classList.add('drag-over');
-  const panels = [...board.querySelectorAll('.panel')];
-  if (panels.indexOf(el) < panels.indexOf(target)) target.after(el);
-  else target.before(el);
-}
 
 function initDrag(el) {
-  // ── Mouse drag ──
-  el.addEventListener('dragstart', e => {
-    dragSrc = el;
-    e.dataTransfer.effectAllowed = 'move';
-    setTimeout(() => el.classList.add('dragging'), 0);
-  });
-  el.addEventListener('dragend', () => {
-    el.classList.remove('dragging');
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
-    saveOrder();
-  });
-  el.addEventListener('dragover', e => {
-    e.preventDefault();
-    if (el === dragSrc) return;
-    reorderPanel(dragSrc, e.clientX, e.clientY);
-  });
-  el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+  let ghost = null;
+  let placeholder = null;
+  let offsetX = 0, offsetY = 0;
+  let active = false;
 
-  // ── Touch drag (whole title bar) ──
-  const titleBar = el.querySelector('.panel-title');
-  let touching = false;
+  function onStart(clientX, clientY) {
+    const rect = el.getBoundingClientRect();
+    offsetX = clientX - rect.left;
+    offsetY = clientY - rect.top;
 
-  titleBar.addEventListener('touchstart', e => {
-    touching = true;
+    // Placeholder keeps the slot open
+    placeholder = document.createElement('div');
+    placeholder.className = 'drag-placeholder';
+    placeholder.style.height = rect.height + 'px';
+    el.after(placeholder);
+
+    // Ghost floats under finger
+    ghost = el.cloneNode(true);
+    ghost.classList.add('panel-ghost');
+    ghost.style.width = rect.width + 'px';
+    ghost.style.top = rect.top + 'px';
+    ghost.style.left = rect.left + 'px';
+    document.body.appendChild(ghost);
+
     el.classList.add('dragging');
+    active = true;
+  }
+
+  function onMove(clientX, clientY) {
+    if (!active) return;
+    ghost.style.top  = (clientY - offsetY) + 'px';
+    ghost.style.left = (clientX - offsetX) + 'px';
+
+    ghost.style.pointerEvents = 'none';
+    const under = document.elementFromPoint(clientX, clientY);
+    ghost.style.pointerEvents = '';
+
+    const target = under && under.closest('.panel:not(.dragging)');
+    if (target) {
+      const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
+      if (clientY < mid) target.before(placeholder);
+      else target.after(placeholder);
+    }
+  }
+
+  function onEnd() {
+    if (!active) return;
+    active = false;
+    placeholder.replaceWith(el);
+    ghost.remove();
+    el.classList.remove('dragging');
+    ghost = null;
+    placeholder = null;
+    saveOrder();
+  }
+
+  const titleBar = el.querySelector('.panel-title');
+
+  // Touch
+  titleBar.addEventListener('touchstart', e => {
     e.preventDefault();
+    const t = e.touches[0];
+    onStart(t.clientX, t.clientY);
   }, { passive: false });
 
   titleBar.addEventListener('touchmove', e => {
-    if (!touching) return;
     e.preventDefault();
     const t = e.touches[0];
-    reorderPanel(el, t.clientX, t.clientY);
+    onMove(t.clientX, t.clientY);
   }, { passive: false });
 
-  titleBar.addEventListener('touchend', () => {
-    touching = false;
-    el.classList.remove('dragging');
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
-    saveOrder();
+  titleBar.addEventListener('touchend', onEnd);
+  titleBar.addEventListener('touchcancel', onEnd);
+
+  // Mouse
+  titleBar.addEventListener('mousedown', e => {
+    e.preventDefault();
+    onStart(e.clientX, e.clientY);
+    const onMouseMove = e => onMove(e.clientX, e.clientY);
+    const onMouseUp = () => {
+      onEnd();
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
   });
 }
 
