@@ -274,10 +274,16 @@ function renderStatic(panel, containerEl) {
       const editList = document.createElement('div');
       editList.className = 'edit-list';
 
+      const TAG_CYCLE = ['daily', 'weekly', 'anytime', null];
+
       items.forEach((item, idx) => {
         const row = document.createElement('div');
         row.className = 'edit-row';
         row.dataset.idx = idx;
+
+        // Top line: grip + input + delete
+        const topLine = document.createElement('div');
+        topLine.className = 'edit-row-top';
 
         const grip = document.createElement('span');
         grip.className = 'item-grip';
@@ -294,7 +300,7 @@ function renderStatic(panel, containerEl) {
         textInput.addEventListener('keydown', e => { if (e.key === 'Enter') textInput.blur(); });
 
         const del = document.createElement('button');
-        del.className = 'del-btn static-del';
+        del.className = 'static-del';
         del.textContent = '×';
         del.addEventListener('click', () => {
           items.splice(idx, 1);
@@ -302,26 +308,29 @@ function renderStatic(panel, containerEl) {
           rebuild();
         });
 
-        row.append(grip, textInput);
+        topLine.append(grip, textInput, del);
+        row.appendChild(topLine);
 
+        // Bottom line: tag pill (only for tagged panels)
         if (hasTags) {
-          const tagSel = document.createElement('select');
-          tagSel.className = 'tag-select';
-          [['daily','daily'], ['weekly','weekly'], ['anytime','anytime'], ['—','']].forEach(([label, val]) => {
-            const opt = document.createElement('option');
-            opt.value = val;
-            opt.textContent = label;
-            if ((item.tag || '') === val) opt.selected = true;
-            tagSel.appendChild(opt);
-          });
-          tagSel.addEventListener('change', () => {
-            items[idx].tag = tagSel.value || null;
+          const metaLine = document.createElement('div');
+          metaLine.className = 'edit-row-meta';
+
+          const tagBtn = document.createElement('button');
+          const currentTag = item.tag || null;
+          tagBtn.className = 'tag-cycle-btn' + (currentTag ? ' tag-' + currentTag : ' tag-none');
+          tagBtn.textContent = currentTag ? currentTag : '+ tag';
+          tagBtn.addEventListener('click', () => {
+            const next = TAG_CYCLE[(TAG_CYCLE.indexOf(item.tag) + 1) % TAG_CYCLE.length];
+            items[idx].tag = next;
             saveStaticItems(panel.id, items);
+            rebuild();
           });
-          row.appendChild(tagSel);
+
+          metaLine.appendChild(tagBtn);
+          row.appendChild(metaLine);
         }
 
-        row.appendChild(del);
         editList.appendChild(row);
 
         attachItemDrag(row, editList, idx,
@@ -337,19 +346,21 @@ function renderStatic(panel, containerEl) {
       newInput.type = 'text';
       newInput.placeholder = 'Add item…';
 
-      let tagSel = null;
+      let newTag = hasTags ? 'daily' : null;
+      addRow.appendChild(newInput);
+
       if (hasTags) {
-        tagSel = document.createElement('select');
-        tagSel.className = 'tag-select';
-        ['daily', 'weekly', 'anytime'].forEach(t => {
-          const opt = document.createElement('option');
-          opt.value = t;
-          opt.textContent = t;
-          tagSel.appendChild(opt);
+        const newTagBtn = document.createElement('button');
+        newTagBtn.className = 'tag-cycle-btn tag-daily';
+        newTagBtn.textContent = 'daily';
+        newTagBtn.addEventListener('click', e => {
+          e.preventDefault();
+          const cycle = ['daily', 'weekly', 'anytime'];
+          newTag = cycle[(cycle.indexOf(newTag) + 1) % cycle.length];
+          newTagBtn.className = 'tag-cycle-btn tag-' + newTag;
+          newTagBtn.textContent = newTag;
         });
-        addRow.append(newInput, tagSel);
-      } else {
-        addRow.appendChild(newInput);
+        addRow.appendChild(newTagBtn);
       }
 
       const addBtn = document.createElement('button');
@@ -359,7 +370,7 @@ function renderStatic(panel, containerEl) {
       function addItem() {
         const text = newInput.value.trim();
         if (!text) return;
-        items.push({ text, tag: tagSel ? tagSel.value : null });
+        items.push({ text, tag: newTag });
         saveStaticItems(panel.id, items);
         newInput.value = '';
         rebuild();
