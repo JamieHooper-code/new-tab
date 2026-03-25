@@ -62,12 +62,24 @@ const PANELS = [
       "Write down anything floating in your head",
       "Timebox: 25 min focused work, 5 min break",
       "If overwhelmed, pick just ONE thing to do next",
-      "If your arms/hands are hurting: stop. Not in 10 minutes. Now.",
-      "The task will still be there tomorrow — your body might not recover as easily",
-      "Pain is not a sign to push through, it's a sign to stop",
-      "Stand up and walk away before you feel like you need to",
-      "Set a timer — when it goes off, get up regardless of where you are in the task",
-      "Locking in feels productive but chronic pain costs you far more time than breaks do"
+      "If the pain is escalating beyond your baseline — stop. That's the signal, not the baseline itself",
+      "Know the difference: background ache is manageable, sharp or climbing pain means stop now",
+      "The task will still be there tomorrow — don't trade an hour of progress for days of recovery",
+      "Locking in feels productive but a flare-up costs you far more time than a break does",
+      "Stand up before you feel like you need to — by the time it feels urgent, you've waited too long",
+      "Set a timer — when it goes off, get up regardless of where you are in the task"
+    ]
+  },
+  {
+    id: "quotes",
+    title: "Quotes to Remember",
+    type: "static",
+    items: [
+      "Slow is smooth, smooth is fast",
+      "The best time to plant a tree was 20 years ago. The second best time is now",
+      "You don't rise to the level of your goals, you fall to the level of your systems",
+      "Perfection is the enemy of done",
+      "Do the thing, then you'll have the motivation"
     ]
   }
 ];
