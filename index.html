@@ -245,6 +245,74 @@
     /* ── Panel title layout ── */
     .panel-label { flex: 1; }
 
+    /* ── Add panel card ── */
+    .add-panel-card {
+      border: 2px dashed #2a2a38;
+      background: transparent;
+      box-shadow: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      min-height: 72px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .add-panel-card:hover { border-color: #4a4a5a; }
+
+    .add-panel-idle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #3a3a4a;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      transition: color 0.15s;
+    }
+
+    .add-panel-card:hover .add-panel-idle { color: #666680; }
+
+    .add-panel-plus {
+      font-size: 22px;
+      line-height: 1;
+      font-weight: 300;
+    }
+
+    .add-panel-open { cursor: default; }
+
+    .add-panel-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .add-panel-input {
+      background: #1e1e28;
+      border: 1px solid #2a2a38;
+      border-radius: 6px;
+      color: #c9c9d4;
+      font-size: 14px;
+      outline: none;
+      padding: 7px 10px;
+      transition: border-color 0.15s;
+    }
+
+    .add-panel-input:focus { border-color: #5a5a7a; }
+
+    .add-panel-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      color: #666680;
+    }
+
+    .add-panel-btns { justify-content: flex-end; margin-top: 4px; }
+
+    .panel-del-btn { margin-left: 4px; }
+
     /* ── Item drag handles ── */
     .item-grip {
       color: #2e2e3e;

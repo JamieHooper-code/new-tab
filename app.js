@@ -386,6 +386,19 @@ function renderStatic(panel, containerEl) {
 
 // ── Panel builder ─────────────────────────────────────────────
 
+function loadUserPanels() {
+  try { return JSON.parse(localStorage.getItem('user_panels')) || []; }
+  catch { return []; }
+}
+
+function saveUserPanels(panels) {
+  localStorage.setItem('user_panels', JSON.stringify(panels));
+}
+
+function allPanels() {
+  return [...PANELS, ...loadUserPanels()];
+}
+
 function loadOrder() {
   try { return JSON.parse(localStorage.getItem('panel_order')) || null; }
   catch { return null; }
@@ -397,11 +410,12 @@ function saveOrder() {
 }
 
 function orderedPanels() {
+  const all = allPanels();
   const order = loadOrder();
-  if (!order) return PANELS;
+  if (!order) return all;
   return [
-    ...order.map(id => PANELS.find(p => p.id === id)).filter(Boolean),
-    ...PANELS.filter(p => !order.includes(p.id))
+    ...order.map(id => all.find(p => p.id === id)).filter(Boolean),
+    ...all.filter(p => !order.includes(p.id))
   ];
 }
 
@@ -440,7 +454,138 @@ function buildPanel(panel) {
     title.appendChild(editBtn);
   }
 
+  // Delete button for user-created panels
+  if (panel.userCreated) {
+    const delBtn = document.createElement('button');
+    delBtn.className = 'edit-toggle-btn panel-del-btn';
+    delBtn.textContent = '×';
+    delBtn.title = 'Delete panel';
+    delBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!confirm(`Delete "${panel.title}"?`)) return;
+      const updated = loadUserPanels().filter(p => p.id !== panel.id);
+      saveUserPanels(updated);
+      el.remove();
+      saveOrder();
+    });
+    title.appendChild(delBtn);
+  }
+
   return el;
+}
+
+// ── Add Panel card ─────────────────────────────────────────────
+
+function buildAddPanelCard() {
+  const card = document.createElement('div');
+  card.className = 'panel add-panel-card';
+  card.id = 'add-panel-card';
+
+  function showPrompt() {
+    card.innerHTML = '';
+    card.classList.add('add-panel-open');
+
+    const form = document.createElement('div');
+    form.className = 'add-panel-form';
+
+    // Name
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = 'Panel name…';
+    nameInput.className = 'add-panel-input';
+
+    // Type
+    const typeRow = document.createElement('div');
+    typeRow.className = 'add-panel-row';
+    const typeLabel = document.createElement('span');
+    typeLabel.textContent = 'Type';
+    const typeSelect = document.createElement('select');
+    typeSelect.className = 'tag-select';
+    ['checklist', 'static'].forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      typeSelect.appendChild(opt);
+    });
+    typeRow.append(typeLabel, typeSelect);
+
+    // Tags toggle (only relevant for static)
+    const tagsRow = document.createElement('div');
+    tagsRow.className = 'add-panel-row';
+    const tagsLabel = document.createElement('span');
+    tagsLabel.textContent = 'Has tags';
+    const tagsCheck = document.createElement('input');
+    tagsCheck.type = 'checkbox';
+    tagsRow.append(tagsLabel, tagsCheck);
+
+    typeSelect.addEventListener('change', () => {
+      tagsRow.style.display = typeSelect.value === 'static' ? 'flex' : 'none';
+    });
+    tagsRow.style.display = 'none';
+
+    // Buttons
+    const btnRow = document.createElement('div');
+    btnRow.className = 'add-panel-row add-panel-btns';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.className = 'clear-btn';
+    cancelBtn.addEventListener('click', e => { e.stopPropagation(); showIdle(); });
+
+    const createBtn = document.createElement('button');
+    createBtn.textContent = 'Create';
+    createBtn.className = 'edit-toggle-btn';
+    createBtn.style.color = 'var(--accent)';
+    createBtn.style.borderColor = 'var(--accent)';
+
+    createBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const name = nameInput.value.trim();
+      if (!name) { nameInput.focus(); return; }
+
+      const id = 'user_' + name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now();
+      const panel = {
+        id,
+        title: name,
+        type: typeSelect.value,
+        items: tagsCheck.checked
+          ? [{ text: 'Example item', tag: 'daily' }]
+          : [],
+        userCreated: true,
+        hasTags: tagsCheck.checked
+      };
+
+      const userPanels = loadUserPanels();
+      userPanels.push(panel);
+      saveUserPanels(userPanels);
+
+      const newEl = buildPanel(panel);
+      initDrag(newEl);
+      board.insertBefore(newEl, card);
+      saveOrder();
+      showIdle();
+    });
+
+    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') createBtn.click(); });
+
+    btnRow.append(cancelBtn, createBtn);
+    form.append(nameInput, typeRow, tagsRow, btnRow);
+    card.appendChild(form);
+    nameInput.focus();
+  }
+
+  function showIdle() {
+    card.innerHTML = '';
+    card.classList.remove('add-panel-open');
+    const inner = document.createElement('div');
+    inner.className = 'add-panel-idle';
+    inner.innerHTML = '<span class="add-panel-plus">+</span><span>Add Panel</span>';
+    card.appendChild(inner);
+    card.addEventListener('click', showPrompt, { once: true });
+  }
+
+  showIdle();
+  return card;
 }
 
 // ── Panel-level drag ──────────────────────────────────────────
@@ -548,3 +693,5 @@ for (const panel of orderedPanels()) {
   initDrag(el);
   board.appendChild(el);
 }
+
+board.appendChild(buildAddPanelCard());
