@@ -38,7 +38,8 @@ function renderChecklist(panel, containerEl) {
       cb.checked = item.done;
       cb.addEventListener('change', () => {
         current[idx].done = cb.checked;
-        saveChecklist(panel.id, current);
+        const reordered = [...current.filter(i => !i.done), ...current.filter(i => i.done)];
+        saveChecklist(panel.id, reordered);
         rebuild();
       });
 
