@@ -2,6 +2,104 @@
 //  APP LOGIC — no need to edit this file
 // ============================================================
 
+// ── Item-level drag reorder ──────────────────────────────────
+
+function attachItemDrag(li, listEl, idx, getItems, saveItems, rebuild) {
+  let ghost = null, active = false;
+  let offsetX = 0, offsetY = 0;
+  let dropTarget = null, dropBefore = false;
+
+  const grip = li.querySelector('.item-grip');
+
+  function onStart(clientX, clientY) {
+    const rect = li.getBoundingClientRect();
+    offsetX = clientX - rect.left;
+    offsetY = clientY - rect.top;
+
+    ghost = li.cloneNode(true);
+    ghost.classList.add('item-ghost');
+    ghost.style.width = rect.width + 'px';
+    ghost.style.top   = rect.top + 'px';
+    ghost.style.left  = rect.left + 'px';
+    document.body.appendChild(ghost);
+
+    li.classList.add('item-dragging');
+    active = true;
+  }
+
+  function onMove(clientX, clientY) {
+    if (!active) return;
+    ghost.style.top  = (clientY - offsetY) + 'px';
+    ghost.style.left = (clientX - offsetX) + 'px';
+
+    ghost.style.pointerEvents = 'none';
+    const under = document.elementFromPoint(clientX, clientY);
+    ghost.style.pointerEvents = '';
+
+    listEl.querySelectorAll('.item-drop-before, .item-drop-after')
+      .forEach(el => el.classList.remove('item-drop-before', 'item-drop-after'));
+
+    const target = under && under.closest('li:not(.item-dragging), div.edit-row:not(.item-dragging)');
+    if (target && target.closest('ul, .edit-list') === listEl) {
+      const r = target.getBoundingClientRect();
+      dropBefore = clientY < r.top + r.height / 2;
+      dropTarget = target;
+      target.classList.add(dropBefore ? 'item-drop-before' : 'item-drop-after');
+    } else {
+      dropTarget = null;
+    }
+  }
+
+  function onEnd() {
+    if (!active) return;
+    active = false;
+    ghost.remove();
+    li.classList.remove('item-dragging');
+    listEl.querySelectorAll('.item-drop-before, .item-drop-after')
+      .forEach(el => el.classList.remove('item-drop-before', 'item-drop-after'));
+
+    if (dropTarget) {
+      const toIdx = parseInt(dropTarget.dataset.idx);
+      const items = getItems();
+      const [moved] = items.splice(idx, 1);
+      const targetIdx = toIdx > idx ? toIdx - 1 : toIdx;
+      const insertAt = dropBefore ? targetIdx : targetIdx + 1;
+      items.splice(insertAt, 0, moved);
+      saveItems(items);
+      rebuild();
+    }
+    ghost = null;
+    dropTarget = null;
+  }
+
+  grip.addEventListener('touchstart', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    onStart(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+
+  grip.addEventListener('touchmove', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    onMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+
+  grip.addEventListener('touchend', onEnd);
+  grip.addEventListener('touchcancel', onEnd);
+
+  grip.addEventListener('mousedown', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    onStart(e.clientX, e.clientY);
+    const mm = e => onMove(e.clientX, e.clientY);
+    const mu = () => { onEnd(); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+    document.addEventListener('mousemove', mm);
+    document.addEventListener('mouseup', mu);
+  });
+}
+
+// ── Checklist panels ─────────────────────────────────────────
+
 function loadChecklist(id) {
   try { return JSON.parse(localStorage.getItem('panel_' + id)) || []; }
   catch { return []; }
@@ -31,7 +129,12 @@ function renderChecklist(panel, containerEl) {
     const current = loadChecklist(panel.id);
     current.forEach((item, idx) => {
       const li = document.createElement('li');
+      li.dataset.idx = idx;
       if (item.done) li.classList.add('done');
+
+      const grip = document.createElement('span');
+      grip.className = 'item-grip';
+      grip.textContent = '⠿';
 
       const cb = document.createElement('input');
       cb.type = 'checkbox';
@@ -57,8 +160,14 @@ function renderChecklist(panel, containerEl) {
         rebuild();
       });
 
-      li.append(cb, span, del);
+      li.append(grip, cb, span, del);
       list.appendChild(li);
+
+      attachItemDrag(li, list, idx,
+        () => loadChecklist(panel.id),
+        items => saveChecklist(panel.id, items),
+        rebuild
+      );
     });
   }
 
@@ -100,7 +209,7 @@ function renderChecklist(panel, containerEl) {
   containerEl.appendChild(clearBtn);
 }
 
-// ── Static panels ──
+// ── Static panels ─────────────────────────────────────────────
 
 function loadStaticItems(panel) {
   try {
@@ -130,9 +239,21 @@ function renderStatic(panel, containerEl) {
     if (!editMode) {
       const list = document.createElement('ul');
       list.className = 'static-list' + (hasTags ? ' has-tags' : '');
-      for (const item of items) {
+
+      items.forEach((item, idx) => {
         const li = document.createElement('li');
-        li.appendChild(document.createTextNode(item.text));
+        li.dataset.idx = idx;
+
+        const grip = document.createElement('span');
+        grip.className = 'item-grip';
+        grip.textContent = '⠿';
+
+        const textNode = document.createElement('span');
+        textNode.className = 'static-text';
+        textNode.textContent = item.text;
+
+        li.append(grip, textNode);
+
         if (item.tag) {
           const tagEl = document.createElement('span');
           tagEl.className = 'tag tag-' + item.tag;
@@ -140,7 +261,14 @@ function renderStatic(panel, containerEl) {
           li.appendChild(tagEl);
         }
         list.appendChild(li);
-      }
+
+        attachItemDrag(li, list, idx,
+          () => loadStaticItems(panel),
+          items => saveStaticItems(panel.id, items),
+          rebuild
+        );
+      });
+
       wrapper.appendChild(list);
     } else {
       const editList = document.createElement('div');
@@ -149,6 +277,11 @@ function renderStatic(panel, containerEl) {
       items.forEach((item, idx) => {
         const row = document.createElement('div');
         row.className = 'edit-row';
+        row.dataset.idx = idx;
+
+        const grip = document.createElement('span');
+        grip.className = 'item-grip';
+        grip.textContent = '⠿';
 
         const textInput = document.createElement('input');
         textInput.type = 'text';
@@ -158,9 +291,7 @@ function renderStatic(panel, containerEl) {
           const val = textInput.value.trim();
           if (val) { items[idx].text = val; saveStaticItems(panel.id, items); }
         });
-        textInput.addEventListener('keydown', e => {
-          if (e.key === 'Enter') textInput.blur();
-        });
+        textInput.addEventListener('keydown', e => { if (e.key === 'Enter') textInput.blur(); });
 
         const del = document.createElement('button');
         del.className = 'del-btn static-del';
@@ -171,7 +302,7 @@ function renderStatic(panel, containerEl) {
           rebuild();
         });
 
-        row.append(textInput);
+        row.append(grip, textInput);
 
         if (hasTags) {
           const tagSel = document.createElement('select');
@@ -192,9 +323,14 @@ function renderStatic(panel, containerEl) {
 
         row.appendChild(del);
         editList.appendChild(row);
+
+        attachItemDrag(row, editList, idx,
+          () => loadStaticItems(panel),
+          items => saveStaticItems(panel.id, items),
+          rebuild
+        );
       });
 
-      // Add row
       const addRow = document.createElement('div');
       addRow.className = 'add-row';
       const newInput = document.createElement('input');
@@ -211,8 +347,7 @@ function renderStatic(panel, containerEl) {
           opt.textContent = t;
           tagSel.appendChild(opt);
         });
-        addRow.appendChild(newInput);
-        addRow.appendChild(tagSel);
+        addRow.append(newInput, tagSel);
       } else {
         addRow.appendChild(newInput);
       }
@@ -249,7 +384,7 @@ function renderStatic(panel, containerEl) {
   };
 }
 
-// ── Panel builder ──
+// ── Panel builder ─────────────────────────────────────────────
 
 function loadOrder() {
   try { return JSON.parse(localStorage.getItem('panel_order')) || null; }
@@ -308,7 +443,7 @@ function buildPanel(panel) {
   return el;
 }
 
-// ── Drag ──
+// ── Panel-level drag ──────────────────────────────────────────
 
 const board = document.getElementById('board');
 
