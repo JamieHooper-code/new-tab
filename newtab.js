@@ -247,7 +247,21 @@ const board = document.getElementById('board');
 
 let dragSrc = null;
 
+function reorderPanel(el, clientX, clientY) {
+  el.style.pointerEvents = 'none';
+  const under = document.elementFromPoint(clientX, clientY);
+  el.style.pointerEvents = '';
+  const target = under && under.closest('.panel');
+  if (!target || target === el) return;
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
+  target.classList.add('drag-over');
+  const panels = [...board.querySelectorAll('.panel')];
+  if (panels.indexOf(el) < panels.indexOf(target)) target.after(el);
+  else target.before(el);
+}
+
 function initDrag(el) {
+  // ── Mouse drag ──
   el.addEventListener('dragstart', e => {
     dragSrc = el;
     e.dataTransfer.effectAllowed = 'move';
@@ -261,15 +275,33 @@ function initDrag(el) {
   el.addEventListener('dragover', e => {
     e.preventDefault();
     if (el === dragSrc) return;
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
-    el.classList.add('drag-over');
-    const panels = [...board.querySelectorAll('.panel')];
-    const srcIdx = panels.indexOf(dragSrc);
-    const tgtIdx = panels.indexOf(el);
-    if (srcIdx < tgtIdx) el.after(dragSrc);
-    else el.before(dragSrc);
+    reorderPanel(dragSrc, e.clientX, e.clientY);
   });
   el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+
+  // ── Touch drag ──
+  const grip = el.querySelector('.grip');
+  let touching = false;
+
+  grip.addEventListener('touchstart', e => {
+    touching = true;
+    el.classList.add('dragging');
+    e.preventDefault();
+  }, { passive: false });
+
+  grip.addEventListener('touchmove', e => {
+    if (!touching) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    reorderPanel(el, t.clientX, t.clientY);
+  }, { passive: false });
+
+  grip.addEventListener('touchend', () => {
+    touching = false;
+    el.classList.remove('dragging');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
+    saveOrder();
+  });
 }
 
 for (const panel of orderedPanels()) {
