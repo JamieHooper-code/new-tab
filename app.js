@@ -61,9 +61,7 @@ function renderChecklist(panel, containerEl) {
     });
   }
 
-  if (!localStorage.getItem('panel_' + panel.id)) {
-    saveChecklist(panel.id, items);
-  }
+  saveChecklist(panel.id, items);
   rebuild();
   containerEl.appendChild(list);
 
