@@ -234,6 +234,29 @@
     .tag-daily   { background: #1a2e1a; color: #9ece6a; }
     .tag-weekly  { background: #1a2030; color: #7aa2f7; }
     .tag-anytime { background: #2a2218; color: #e0af68; }
+
+    /* ── Drag and drop ── */
+    .grip {
+      cursor: grab;
+      color: #2e2e3e;
+      font-size: 14px;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: color 0.15s;
+      user-select: none;
+    }
+
+    .panel-title:hover .grip { color: var(--accent); opacity: 0.5; }
+
+    .panel.dragging {
+      opacity: 0.4;
+      cursor: grabbing;
+    }
+
+    .panel.drag-over {
+      outline: 2px dashed var(--accent);
+      outline-offset: 2px;
+    }
   </style>
 </head>
 <body>

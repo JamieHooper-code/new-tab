@@ -198,19 +198,82 @@ function renderStatic(panel, containerEl) {
   containerEl.appendChild(list);
 }
 
-const board = document.getElementById('board');
-for (const panel of PANELS) {
+function loadOrder() {
+  try { return JSON.parse(localStorage.getItem('panel_order')) || null; }
+  catch { return null; }
+}
+
+function saveOrder() {
+  const ids = [...document.querySelectorAll('.panel')].map(el => el.dataset.id);
+  localStorage.setItem('panel_order', JSON.stringify(ids));
+}
+
+function orderedPanels() {
+  const order = loadOrder();
+  if (!order) return PANELS;
+  return [
+    ...order.map(id => PANELS.find(p => p.id === id)).filter(Boolean),
+    ...PANELS.filter(p => !order.includes(p.id))
+  ];
+}
+
+function buildPanel(panel) {
   const el = document.createElement('div');
   el.className = 'panel';
   el.dataset.id = panel.id;
+  el.draggable = true;
 
   const title = document.createElement('div');
   title.className = 'panel-title';
-  title.textContent = panel.title;
+
+  const grip = document.createElement('span');
+  grip.className = 'grip';
+  grip.textContent = '⠿';
+  grip.title = 'Drag to reorder';
+
+  const label = document.createElement('span');
+  label.textContent = panel.title;
+
+  title.append(grip, label);
   el.appendChild(title);
 
   if (panel.type === 'checklist') renderChecklist(panel, el);
   else renderStatic(panel, el);
 
+  return el;
+}
+
+const board = document.getElementById('board');
+
+let dragSrc = null;
+
+function initDrag(el) {
+  el.addEventListener('dragstart', e => {
+    dragSrc = el;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => el.classList.add('dragging'), 0);
+  });
+  el.addEventListener('dragend', () => {
+    el.classList.remove('dragging');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
+    saveOrder();
+  });
+  el.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (el === dragSrc) return;
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('drag-over'));
+    el.classList.add('drag-over');
+    const panels = [...board.querySelectorAll('.panel')];
+    const srcIdx = panels.indexOf(dragSrc);
+    const tgtIdx = panels.indexOf(el);
+    if (srcIdx < tgtIdx) el.after(dragSrc);
+    else el.before(dragSrc);
+  });
+  el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+}
+
+for (const panel of orderedPanels()) {
+  const el = buildPanel(panel);
+  initDrag(el);
   board.appendChild(el);
 }
