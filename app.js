@@ -315,25 +315,22 @@ const board = document.getElementById('board');
 
 function initDrag(el) {
   let ghost = null;
-  let placeholder = null;
   let offsetX = 0, offsetY = 0;
   let active = false;
+  let dropTarget = null;
+  let dropBefore = false;
 
   function onStart(clientX, clientY) {
     const rect = el.getBoundingClientRect();
     offsetX = clientX - rect.left;
     offsetY = clientY - rect.top;
 
-    placeholder = document.createElement('div');
-    placeholder.className = 'drag-placeholder';
-    placeholder.style.height = rect.height + 'px';
-    el.after(placeholder);
-
     ghost = el.cloneNode(true);
     ghost.classList.add('panel-ghost');
-    ghost.style.width = rect.width + 'px';
-    ghost.style.top = rect.top + 'px';
-    ghost.style.left = rect.left + 'px';
+    ghost.style.width  = rect.width + 'px';
+    ghost.style.height = rect.height + 'px';
+    ghost.style.top    = rect.top + 'px';
+    ghost.style.left   = rect.left + 'px';
     document.body.appendChild(ghost);
 
     el.classList.add('dragging');
@@ -349,22 +346,33 @@ function initDrag(el) {
     const under = document.elementFromPoint(clientX, clientY);
     ghost.style.pointerEvents = '';
 
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('drop-before', 'drop-after'));
+
     const target = under && under.closest('.panel:not(.dragging)');
     if (target) {
-      const mid = target.getBoundingClientRect().top + target.getBoundingClientRect().height / 2;
-      if (clientY < mid) target.before(placeholder);
-      else target.after(placeholder);
+      const r = target.getBoundingClientRect();
+      dropBefore = clientY < r.top + r.height / 2;
+      dropTarget = target;
+      target.classList.add(dropBefore ? 'drop-before' : 'drop-after');
+    } else {
+      dropTarget = null;
     }
   }
 
   function onEnd() {
     if (!active) return;
     active = false;
-    placeholder.replaceWith(el);
+
+    if (dropTarget) {
+      if (dropBefore) dropTarget.before(el);
+      else dropTarget.after(el);
+    }
+
     ghost.remove();
     el.classList.remove('dragging');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('drop-before', 'drop-after'));
     ghost = null;
-    placeholder = null;
+    dropTarget = null;
     saveOrder();
   }
 
