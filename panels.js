@@ -70,6 +70,32 @@ const PANELS = [
     ]
   },
   {
+    id: "checkin",
+    title: "Check-In",
+    type: "static",
+    defaultCfg: { mode: 'random', limit: 10 },
+    items: [
+      { text: "Unclench your jaw and relax your face",                              tag: "body"   },
+      { text: "Drop your shoulders — are they hunched near your ears?",             tag: "body"   },
+      { text: "Are your hands gripping or tense? Open them flat",                  tag: "body"   },
+      { text: "Check your posture — slouching, twisted, or off-centre?",           tag: "body"   },
+      { text: "20-20-20: look 20 feet away for 20 seconds",                        tag: "body"   },
+      { text: "When did you last drink water?",                                     tag: "body"   },
+      { text: "When did you last eat?",                                             tag: "body"   },
+      { text: "Any pain creeping up — back, neck, wrists, eyes? Note it honestly", tag: "body"   },
+      { text: "Are you still working on what you intended to start?",               tag: "mind"   },
+      { text: "Are you making actual progress, or going in circles?",               tag: "mind"   },
+      { text: "What is the single next action right now?",                          tag: "mind"   },
+      { text: "Have you been at this longer than 90 minutes without a break?",     tag: "mind"   },
+      { text: "Is the urgency real, or are you hyperfocusing?",                    tag: "mind"   },
+      { text: "Are you doing this because it matters, or avoiding something else?",tag: "mind"   },
+      { text: "Take 3 slow, deep belly breaths right now",                         tag: "breath" },
+      { text: "Box: inhale 4, hold 4, exhale 4, hold 4 — repeat 3×",              tag: "breath" },
+      { text: "4-7-8: inhale 4, hold 7, exhale 8 — repeat 3×",                    tag: "breath" },
+      { text: "Let the exhale be longer than the inhale — it calms the nervous system", tag: "breath" }
+    ]
+  },
+  {
     id: "quotes",
     title: "Quotes to Remember",
     type: "static",

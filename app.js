@@ -100,9 +100,9 @@ function attachItemDrag(li, listEl, idx, getItems, saveItems, rebuild) {
 
 // ── Display mode helpers ──────────────────────────────────────
 
-function loadPanelCfg(id) {
-  try { return { mode: 'all', limit: 5, ...JSON.parse(localStorage.getItem('panel_cfg_' + id)) }; }
-  catch { return { mode: 'all', limit: 5 }; }
+function loadPanelCfg(id, defaults = { mode: 'all', limit: 5 }) {
+  try { return { ...defaults, ...JSON.parse(localStorage.getItem('panel_cfg_' + id)) }; }
+  catch { return { ...defaults }; }
 }
 
 function savePanelCfg(id, cfg) {
@@ -154,7 +154,7 @@ function renderChecklist(panel, containerEl) {
     list.style.maxHeight = '';
     list.style.overflowY = '';
     const all = loadChecklist(panel.id);
-    const cfg = loadPanelCfg(panel.id);
+    const cfg = loadPanelCfg(panel.id, panel.defaultCfg);
     if (cfg.mode === 'scroll') {
       list.style.maxHeight = '220px';
       list.style.overflowY = 'auto';
@@ -169,7 +169,7 @@ function renderChecklist(panel, containerEl) {
       const grip = document.createElement('span');
       grip.className = 'item-grip';
       grip.textContent = '⠿';
-      if (!showDrag) grip.style.visibility = 'hidden';
+      if (!showDrag) grip.style.display = 'none';
 
       const cb = document.createElement('input');
       cb.type = 'checkbox';
@@ -277,7 +277,7 @@ function renderStatic(panel, containerEl) {
     const hasTags = items.some(i => i.tag);
 
     if (!editMode) {
-      const cfg = loadPanelCfg(panel.id);
+      const cfg = loadPanelCfg(panel.id, panel.defaultCfg);
       const displayItems = getDisplayItems(panel.id, items, cfg);
       const showDrag = cfg.mode !== 'random';
 
@@ -295,7 +295,7 @@ function renderStatic(panel, containerEl) {
         const grip = document.createElement('span');
         grip.className = 'item-grip';
         grip.textContent = '⠿';
-        if (!showDrag) grip.style.visibility = 'hidden';
+        if (!showDrag) grip.style.display = 'none';
 
         const textNode = document.createElement('span');
         textNode.className = 'static-text';
@@ -480,11 +480,11 @@ function orderedPanels() {
   ];
 }
 
-function buildSettingsBar(panelId, onchange) {
+function buildSettingsBar(panelId, onchange, defaults) {
   const bar = document.createElement('div');
   bar.className = 'settings-bar';
 
-  const cfg = loadPanelCfg(panelId);
+  const cfg = loadPanelCfg(panelId, defaults);
 
   // Mode buttons
   const modeRow = document.createElement('div');
@@ -497,7 +497,7 @@ function buildSettingsBar(panelId, onchange) {
     btn.textContent = label;
     btn.dataset.mode = val;
     btn.addEventListener('click', () => {
-      const c = loadPanelCfg(panelId);
+      const c = loadPanelCfg(panelId, defaults);
       c.mode = val;
       savePanelCfg(panelId, c);
       bar.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === val));
@@ -517,9 +517,21 @@ function buildSettingsBar(panelId, onchange) {
   dec.className = 'stepper-btn';
   dec.textContent = '−';
 
-  const val = document.createElement('span');
-  val.className = 'stepper-val';
-  val.textContent = cfg.limit;
+  const valInput = document.createElement('input');
+  valInput.type = 'text';
+  valInput.className = 'stepper-val';
+  valInput.value = cfg.limit;
+  valInput.addEventListener('keydown', e => { if (e.key === 'Enter') valInput.blur(); });
+  valInput.addEventListener('blur', () => {
+    const parsed = parseInt(valInput.value, 10);
+    if (isNaN(parsed) || parsed < 1) { valInput.value = loadPanelCfg(panelId, defaults).limit; return; }
+    const c = loadPanelCfg(panelId, defaults);
+    c.limit = parsed;
+    savePanelCfg(panelId, c);
+    valInput.value = c.limit;
+    _randomCache.delete(panelId);
+    onchange();
+  });
 
   const inc = document.createElement('button');
   inc.className = 'stepper-btn';
@@ -530,23 +542,23 @@ function buildSettingsBar(panelId, onchange) {
   lbl.textContent = 'items';
 
   dec.addEventListener('click', () => {
-    const c = loadPanelCfg(panelId);
+    const c = loadPanelCfg(panelId, defaults);
     c.limit = Math.max(1, c.limit - 1);
     savePanelCfg(panelId, c);
-    val.textContent = c.limit;
+    valInput.value = c.limit;
     _randomCache.delete(panelId);
     onchange();
   });
   inc.addEventListener('click', () => {
-    const c = loadPanelCfg(panelId);
+    const c = loadPanelCfg(panelId, defaults);
     c.limit = c.limit + 1;
     savePanelCfg(panelId, c);
-    val.textContent = c.limit;
+    valInput.value = c.limit;
     _randomCache.delete(panelId);
     onchange();
   });
 
-  limitRow.append(dec, val, inc, lbl);
+  limitRow.append(dec, valInput, inc, lbl);
   bar.append(modeRow, limitRow);
   return bar;
 }
@@ -576,12 +588,15 @@ function buildPanel(panel) {
 
   title.append(grip, label);
 
+  const contentEl = document.createElement('div');
+  contentEl.className = 'panel-content';
+
   let panelRebuild;
 
   if (panel.type === 'checklist') {
-    ({ rebuild: panelRebuild } = renderChecklist(panel, el));
+    ({ rebuild: panelRebuild } = renderChecklist(panel, contentEl));
   } else {
-    const { toggleEdit, rebuild } = renderStatic(panel, el);
+    const { toggleEdit, rebuild } = renderStatic(panel, contentEl);
     panelRebuild = rebuild;
     const editBtn = document.createElement('button');
     editBtn.className = 'edit-toggle-btn';
@@ -612,11 +627,11 @@ function buildPanel(panel) {
   }
 
   title.appendChild(cfgBtn);
-  el.appendChild(title);
 
-  const settingsBar = buildSettingsBar(panel.id, panelRebuild);
+  const settingsBar = buildSettingsBar(panel.id, panelRebuild, panel.defaultCfg);
   settingsBar.style.display = 'none';
-  el.appendChild(settingsBar);
+
+  el.append(title, settingsBar, contentEl);
 
   cfgBtn.addEventListener('click', e => {
     e.stopPropagation();

@@ -91,6 +91,7 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
+      width: 100%;
     }
 
     .checklist li {
@@ -101,6 +102,8 @@
       border-radius: 6px;
       line-height: 1.45;
       transition: background 0.15s;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .checklist li:hover {
@@ -116,7 +119,7 @@
       height: 13px;
     }
 
-    .checklist li span {
+    .checklist li span:not(.item-grip) {
       cursor: pointer;
       flex: 1;
       color: #c9c9d4;
@@ -251,6 +254,12 @@
     .tag-daily   { background: #1a2e1a; color: #9ece6a; }
     .tag-weekly  { background: #1a2030; color: #7aa2f7; }
     .tag-anytime { background: #2a2218; color: #e0af68; }
+    .tag-body    { background: #2a1a2e; color: #bb9af7; }
+    .tag-mind    { background: #1a2a2e; color: #7dcfff; }
+    .tag-breath  { background: #1a2a1f; color: #73daca; }
+
+    /* ── Panel content wrapper (transparent to flex layout) ── */
+    .panel-content { display: contents; }
 
     /* ── Panel title layout ── */
     .panel-label { flex: 1; }
@@ -315,12 +324,19 @@
     .stepper-btn:hover { color: var(--accent); border-color: var(--accent); }
 
     .stepper-val {
-      min-width: 24px;
+      width: 38px;
       text-align: center;
       font-size: 14px;
       font-weight: 600;
       color: #c9c9d4;
+      background: #1a1a24;
+      border: 1px solid #2a2a38;
+      border-radius: 5px;
+      padding: 2px 4px;
+      outline: none;
+      transition: border-color 0.15s;
     }
+    .stepper-val:focus { border-color: var(--accent); }
 
     .stepper-lbl {
       font-size: 11px;
@@ -521,6 +537,9 @@
     .tag-cycle-btn.tag-daily   { background: #1a2e1a; color: #9ece6a; }
     .tag-cycle-btn.tag-weekly  { background: #1a2030; color: #7aa2f7; }
     .tag-cycle-btn.tag-anytime { background: #2a2218; color: #e0af68; }
+    .tag-cycle-btn.tag-body    { background: #2a1a2e; color: #bb9af7; }
+    .tag-cycle-btn.tag-mind    { background: #1a2a2e; color: #7dcfff; }
+    .tag-cycle-btn.tag-breath  { background: #1a2a1f; color: #73daca; }
     .tag-cycle-btn.tag-none    { background: #22222e; color: #555566; }
 
     .static-del {
